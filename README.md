@@ -57,7 +57,6 @@ npm run ingest:pdf
 ## Useful Commands
 
 - Type check: `npm run check`
-- Run legacy exercise entrypoint: `npm run ingest:pdf:legacy`
 - Custom ingest run:
 
 ```bash
@@ -71,4 +70,3 @@ npx ts-node scripts/runIngestPdf.ts \
 
 - Rerunning ingestion for the same `docId + tenantId` replaces previous chunks in both stores.
 - Keep `.env` out of git; rotate API keys if they were ever exposed.
-

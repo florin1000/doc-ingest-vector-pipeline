@@ -6,7 +6,6 @@
   "scripts": {
     "check": "tsc -p tsconfig.json",
     "ingest:pdf": "ts-node scripts/runIngestPdf.ts",
-    "ingest:pdf:legacy": "ts-node exercises/01_pdf_regular.ts",
     "setup:es-index": "node setup/createIndex.js",
     "test": "echo \"No tests yet\""
   },

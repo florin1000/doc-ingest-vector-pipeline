@@ -1,0 +1,9 @@
+node_modules/
+.env
+.idea/
+.vscode/
+dist/
+*.log
+original_docs/
+practice_embedding_tools.md
+ingestion_pipeline_notes.md

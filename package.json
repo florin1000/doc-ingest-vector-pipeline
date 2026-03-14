@@ -1,0 +1,33 @@
+{
+  "name": "embedding_tools",
+  "version": "1.0.0",
+  "description": "Document ingestion pipeline demo: parse -> chunk -> embed -> store (Elasticsearch + pgvector)",
+  "main": "index.js",
+  "scripts": {
+    "check": "tsc -p tsconfig.json",
+    "ingest:pdf": "ts-node scripts/runIngestPdf.ts",
+    "ingest:pdf:legacy": "ts-node exercises/01_pdf_regular.ts",
+    "setup:es-index": "node setup/createIndex.js",
+    "test": "echo \"No tests yet\""
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@elastic/elasticsearch": "^8.19.1",
+    "cheerio": "^1.2.0",
+    "iconv-lite": "^0.7.2",
+    "mammoth": "^1.11.0",
+    "openai": "^6.27.0",
+    "pdf-parse": "^2.4.5",
+    "pg": "^8.20.0",
+    "tesseract.js": "^7.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.18.0"
+  }
+}

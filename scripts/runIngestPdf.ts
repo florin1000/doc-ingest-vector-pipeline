@@ -3,7 +3,7 @@ import { ingestPdfPipeline } from "../src/pipelines/ingestPdfPipeline";
 import { closeElasticsearchClient } from "../src/stores/elasticsearchStore";
 import { closePgPool } from "../src/stores/pgvectorStore";
 
-type SourceName = "pdf" | "ocr" | "html";
+type SourceName = "pdf" | "ocr" | "html" | "docx";
 
 interface CliOptions {
   source: SourceName;
@@ -63,7 +63,7 @@ function parseCliOptions(argv: string[]): CliOptions {
 
     if (token === "--source" && argv[i + 1]) {
       const source = argv[i + 1];
-      if (source === "pdf" || source === "ocr" || source === "html") {
+      if (source === "pdf" || source === "ocr" || source === "html" || source === "docx") {
         options.source = source;
       }
       i += 1;

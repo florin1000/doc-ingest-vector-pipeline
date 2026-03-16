@@ -1,4 +1,5 @@
 import { embedBatch } from "../embeddings/openaiEmbedder";
+import { parseDocxFile } from "../parsers/docxParser";
 import { parseHtmlUrl } from "../parsers/htmlParser";
 import { parseImageFolderWithOcr } from "../parsers/ocrImageParser";
 import { parsePdfFile } from "../parsers/pdfParser";
@@ -9,7 +10,7 @@ import { upsertChunksToPgvector } from "../stores/pgvectorStore";
 import { ChunkDocument } from "../types/storage";
 
 type SplitterName = "fixed" | "recursive";
-export type IngestionSource = "pdf" | "ocr" | "html";
+export type IngestionSource = "pdf" | "ocr" | "html" | "docx";
 
 export interface IngestPdfOptions {
   tenantId: string;
@@ -50,7 +51,7 @@ export async function ingestPdfPipeline(
   let extractedText = "";
   let extractedPages = 0;
   let sourceRef = input;
-  let sourceType: "pdf" | "url" = "pdf";
+  let sourceType: "pdf" | "url" | "docx" = "pdf";
 
   if (source === "html") {
     console.log("Step 1: Parse HTML");
@@ -61,6 +62,15 @@ export async function ingestPdfPipeline(
     sourceType = "url";
     console.log(`Extracted text length: ${parsedHtml.text.length} chars`);
     console.log("Preview:", parsedHtml.text.slice(0, 500));
+  } else if (source === "docx") {
+    console.log("Step 1: Parse DOCX");
+    const parsedDocx = await parseDocxFile(input);
+    extractedText = parsedDocx.text;
+    extractedPages = parsedDocx.pages;
+    sourceType = "docx";
+    console.log(`Extracted text length: ${parsedDocx.text.length} chars`);
+    console.log(`DOCX warnings: ${parsedDocx.warnings.length}`);
+    console.log("Preview:", parsedDocx.text.slice(0, 500));
   } else {
     console.log("Step 1-1: Parse PDF");
     const parsed = await parsePdfFile(input);

@@ -88,6 +88,16 @@ npx ts-node scripts/runIngestPdf.ts \
   --splitter recursive
 ```
 
+- DOCX ingestion:
+
+```bash
+npx ts-node scripts/runIngestPdf.ts \
+  --source docx \
+  --file ./original_docs/demo.docx \
+  --tenant tenant_A \
+  --splitter fixed
+```
+
 ## Notes
 
 - Rerunning ingestion for the same `docId + tenantId` replaces previous chunks in both stores.

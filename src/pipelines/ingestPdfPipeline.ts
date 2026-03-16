@@ -1,4 +1,5 @@
 import { embedBatch } from "../embeddings/openaiEmbedder";
+import { parseImageFolderWithOcr } from "../parsers/ocrImageParser";
 import { parsePdfFile } from "../parsers/pdfParser";
 import { fixedTokenWindowSplitter } from "../splitters/fixedTokenWindow";
 import { recursiveDelimiterSplitter } from "../splitters/recursiveSplitter";
@@ -13,6 +14,7 @@ export interface IngestPdfOptions {
   splitter?: SplitterName;
   writeToElasticsearch?: boolean;
   writeToPgvector?: boolean;
+  ocrImageDir?: string;
 }
 
 export interface IngestPdfResult {
@@ -42,21 +44,33 @@ export async function ingestPdfPipeline(
   const writeToElasticsearch = options.writeToElasticsearch ?? true;
   const writeToPgvector = options.writeToPgvector ?? true;
 
-  console.log("Step 1: Parse PDF");
+  console.log("Step 1-1: Parse PDF");
   const parsed = await parsePdfFile(filePath);
   console.log(`Extracted text length: ${parsed.text.length} chars`);
   console.log(`Pages: ${parsed.pages}`);
   console.log("Preview:", parsed.text.slice(0, 500));
 
-  if (parsed.text.trim().length < 100) {
-    throw new Error(
-      "Text extraction returned almost nothing. This may be a scanned PDF requiring OCR."
-    );
+  let extractedText = parsed.text;
+  let extractedPages = parsed.pages;
+
+  if (options.ocrImageDir) {
+    console.log("Step 1-2: OCR");
+    const ocrParsed = await parseImageFolderWithOcr(options.ocrImageDir);
+    console.log(`OCR text length: ${ocrParsed.text.length} chars`);
+    console.log(`OCR pages: ${ocrParsed.pages}`);
+    console.log("OCR Preview:", ocrParsed.text.slice(0, 500));
+
+    extractedText = ocrParsed.text;
+    extractedPages = ocrParsed.pages;
+  }
+
+  if (extractedText.trim().length < 100) {
+    throw new Error("Text extraction returned almost nothing.");
   }
 
   console.log(`\nStep 2: Chunk (${splitter})`);
   const splitFn = selectSplitter(splitter);
-  const chunks = splitFn(parsed.text);
+  const chunks = splitFn(extractedText);
   console.log(`Created ${chunks.length} chunks`);
 
   if (!chunks.length) {
@@ -96,9 +110,8 @@ export async function ingestPdfPipeline(
 
   return {
     docId,
-    pages: parsed.pages,
+    pages: extractedPages,
     chunkCount: documents.length,
     splitter,
   };
 }
-

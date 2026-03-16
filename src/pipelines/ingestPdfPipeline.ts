@@ -1,4 +1,5 @@
 import { embedBatch } from "../embeddings/openaiEmbedder";
+import { parseHtmlUrl } from "../parsers/htmlParser";
 import { parseImageFolderWithOcr } from "../parsers/ocrImageParser";
 import { parsePdfFile } from "../parsers/pdfParser";
 import { fixedTokenWindowSplitter } from "../splitters/fixedTokenWindow";
@@ -8,10 +9,12 @@ import { upsertChunksToPgvector } from "../stores/pgvectorStore";
 import { ChunkDocument } from "../types/storage";
 
 type SplitterName = "fixed" | "recursive";
+export type IngestionSource = "pdf" | "ocr" | "html";
 
 export interface IngestPdfOptions {
   tenantId: string;
   splitter?: SplitterName;
+  source?: IngestionSource;
   writeToElasticsearch?: boolean;
   writeToPgvector?: boolean;
   ocrImageDir?: string;
@@ -37,31 +40,50 @@ function selectSplitter(splitter: SplitterName) {
 }
 
 export async function ingestPdfPipeline(
-  filePath: string,
+  input: string,
   options: IngestPdfOptions
 ): Promise<IngestPdfResult> {
   const splitter = options.splitter ?? "fixed";
+  const source = options.source ?? "pdf";
   const writeToElasticsearch = options.writeToElasticsearch ?? true;
   const writeToPgvector = options.writeToPgvector ?? true;
+  let extractedText = "";
+  let extractedPages = 0;
+  let sourceRef = input;
+  let sourceType: "pdf" | "url" = "pdf";
 
-  console.log("Step 1-1: Parse PDF");
-  const parsed = await parsePdfFile(filePath);
-  console.log(`Extracted text length: ${parsed.text.length} chars`);
-  console.log(`Pages: ${parsed.pages}`);
-  console.log("Preview:", parsed.text.slice(0, 500));
+  if (source === "html") {
+    console.log("Step 1: Parse HTML");
+    const parsedHtml = await parseHtmlUrl(input);
+    extractedText = parsedHtml.text;
+    extractedPages = 1;
+    sourceRef = parsedHtml.url;
+    sourceType = "url";
+    console.log(`Extracted text length: ${parsedHtml.text.length} chars`);
+    console.log("Preview:", parsedHtml.text.slice(0, 500));
+  } else {
+    console.log("Step 1-1: Parse PDF");
+    const parsed = await parsePdfFile(input);
+    extractedText = parsed.text;
+    extractedPages = parsed.pages;
+    console.log(`Extracted text length: ${parsed.text.length} chars`);
+    console.log(`Pages: ${parsed.pages}`);
+    console.log("Preview:", parsed.text.slice(0, 500));
 
-  let extractedText = parsed.text;
-  let extractedPages = parsed.pages;
+    if (source === "ocr") {
+      if (!options.ocrImageDir) {
+        throw new Error("OCR source requires --ocr-dir");
+      }
 
-  if (options.ocrImageDir) {
-    console.log("Step 1-2: OCR");
-    const ocrParsed = await parseImageFolderWithOcr(options.ocrImageDir);
-    console.log(`OCR text length: ${ocrParsed.text.length} chars`);
-    console.log(`OCR pages: ${ocrParsed.pages}`);
-    console.log("OCR Preview:", ocrParsed.text.slice(0, 500));
+      console.log("Step 1-2: OCR");
+      const ocrParsed = await parseImageFolderWithOcr(options.ocrImageDir);
+      console.log(`OCR text length: ${ocrParsed.text.length} chars`);
+      console.log(`OCR pages: ${ocrParsed.pages}`);
+      console.log("OCR Preview:", ocrParsed.text.slice(0, 500));
 
-    extractedText = ocrParsed.text;
-    extractedPages = ocrParsed.pages;
+      extractedText = ocrParsed.text;
+      extractedPages = ocrParsed.pages;
+    }
   }
 
   if (extractedText.trim().length < 100) {
@@ -81,7 +103,7 @@ export async function ingestPdfPipeline(
   const embeddedChunks = await embedBatch(chunks);
   console.log(`Embedded ${embeddedChunks.length} chunks`);
 
-  const docId = buildDocId(filePath);
+  const docId = buildDocId(sourceRef);
   const nowIso = new Date().toISOString();
   const documents: ChunkDocument[] = embeddedChunks.map(({ chunk, embedding }, index) => ({
     chunkId: `${docId}_chunk_${index}`,
@@ -89,8 +111,8 @@ export async function ingestPdfPipeline(
     chunkIndex: chunk.chunkIndex,
     tokenCount: chunk.tokenCount,
     tenantId: options.tenantId,
-    source: filePath,
-    sourceType: "pdf",
+    source: sourceRef,
+    sourceType,
     dateUpdated: nowIso,
     text: chunk.text,
     embedding,

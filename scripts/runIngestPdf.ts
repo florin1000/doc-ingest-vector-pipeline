@@ -3,8 +3,12 @@ import { ingestPdfPipeline } from "../src/pipelines/ingestPdfPipeline";
 import { closeElasticsearchClient } from "../src/stores/elasticsearchStore";
 import { closePgPool } from "../src/stores/pgvectorStore";
 
+type SourceName = "pdf" | "ocr" | "html";
+
 interface CliOptions {
+  source: SourceName;
   filePath: string;
+  url?: string;
   tenantId: string;
   splitter: "fixed" | "recursive";
   skipEs: boolean;
@@ -14,7 +18,9 @@ interface CliOptions {
 
 function parseCliOptions(argv: string[]): CliOptions {
   const options: CliOptions = {
+    source: "pdf",
     filePath: "./original_docs/1706.03762v7.pdf",
+    url: undefined,
     tenantId: "tenant_A",
     splitter: "fixed",
     skipEs: false,
@@ -34,6 +40,12 @@ function parseCliOptions(argv: string[]): CliOptions {
       continue;
     }
 
+    if (token === "--url" && argv[i + 1]) {
+      options.url = argv[i + 1] as string;
+      i += 1;
+      continue;
+    }
+
     if (token === "--tenant" && argv[i + 1]) {
       options.tenantId = argv[i + 1] as string;
       i += 1;
@@ -44,6 +56,15 @@ function parseCliOptions(argv: string[]): CliOptions {
       const splitter = argv[i + 1];
       if (splitter === "fixed" || splitter === "recursive") {
         options.splitter = splitter;
+      }
+      i += 1;
+      continue;
+    }
+
+    if (token === "--source" && argv[i + 1]) {
+      const source = argv[i + 1];
+      if (source === "pdf" || source === "ocr" || source === "html") {
+        options.source = source;
       }
       i += 1;
       continue;
@@ -68,16 +89,29 @@ function parseCliOptions(argv: string[]): CliOptions {
   return options;
 }
 
+function resolveIngestionInput(options: CliOptions): string {
+  if (options.source === "html") {
+    if (!options.url) {
+      throw new Error("HTML source requires --url");
+    }
+    return options.url;
+  }
+
+  return options.filePath;
+}
+
 async function main(): Promise<void> {
   loadDotEnv();
   const options = parseCliOptions(process.argv.slice(2));
+  const ingestionInput = resolveIngestionInput(options);
 
-  const result = await ingestPdfPipeline(options.filePath, {
+  const result = await ingestPdfPipeline(ingestionInput, {
     tenantId: options.tenantId,
     splitter: options.splitter,
+    source: options.source,
     writeToElasticsearch: !options.skipEs,
     writeToPgvector: !options.skipPg,
-    ocrImageDir: options.ocrImageDir,
+    ocrImageDir: options.source === "ocr" ? options.ocrImageDir : undefined,
   });
 
   console.log("\nDone");

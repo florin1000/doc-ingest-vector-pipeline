@@ -5,9 +5,8 @@ export interface ChunkDocument {
   tokenCount: number;
   tenantId: string;
   source: string;
-  sourceType: "pdf";
+  sourceType: "pdf" | "url";
   dateUpdated: string;
   text: string;
   embedding: number[];
 }
-

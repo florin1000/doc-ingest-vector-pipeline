@@ -61,6 +61,7 @@ npm run ingest:pdf
 
 ```bash
 npx ts-node scripts/runIngestPdf.ts \
+  --source pdf \
   --file ./original_docs/1706.03762v7.pdf \
   --tenant tenant_A \
   --splitter fixed
@@ -70,10 +71,21 @@ npx ts-node scripts/runIngestPdf.ts \
 
 ```bash
 npx ts-node scripts/runIngestPdf.ts \
+  --source ocr \
   --file ./original_docs/1706.03762v7.pdf \
   --tenant tenant_A \
   --splitter fixed \
   --ocr-dir ./original_docs/1706_03762v7_images
+```
+
+- HTML ingestion:
+
+```bash
+npx ts-node scripts/runIngestPdf.ts \
+  --source html \
+  --url https://en.wikipedia.org/wiki/Transformer_(deep_learning_architecture) \
+  --tenant tenant_A \
+  --splitter recursive
 ```
 
 ## Notes

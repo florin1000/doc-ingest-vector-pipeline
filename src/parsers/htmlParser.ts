@@ -1,4 +1,5 @@
 import * as cheerio from "cheerio";
+import { normalizeWhitespace } from "../utils/textNormalization";
 
 export interface ParsedHtml {
   url: string;
@@ -81,15 +82,6 @@ function extractTitle($: cheerio.CheerioAPI): string {
   }
 
   return $("title").first().text().trim() || "Untitled";
-}
-
-function normalizeWhitespace(input: string): string {
-  return input
-    .replaceAll(/\r\n/g, "\n")
-    .replaceAll(/\r/g, "\n")
-    .replaceAll(/[ \t]+/g, " ")
-    .replaceAll(/\n{3,}/g, "\n\n")
-    .trim();
 }
 
 function extractBodyText($: cheerio.CheerioAPI): string {

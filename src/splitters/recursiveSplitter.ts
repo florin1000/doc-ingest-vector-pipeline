@@ -1,4 +1,5 @@
 import { Chunk } from "../types/chunk";
+import { normalizeWhitespace } from "../utils/textNormalization";
 
 const DEFAULT_MAX_CHUNK_TOKENS = 512;
 const DEFAULT_TOKEN_TO_WORD_RATIO = 0.75;
@@ -10,15 +11,6 @@ interface RecursiveSplitterOptions {
   tokenToWordRatio?: number;
   overlapTokens?: number;
   separators?: string[];
-}
-
-function normalizeText(text: string): string {
-  return text
-    .replaceAll("\r\n", "\n")
-    .replaceAll("\r", "\n")
-    .replaceAll(/[ \t]+/g, " ")
-    .replaceAll(/\n{3,}/g, "\n\n")
-    .trim();
 }
 
 function wordCount(text: string): number {
@@ -142,7 +134,7 @@ export function recursiveDelimiterSplitter(
     return [];
   }
 
-  const normalized = normalizeText(text);
+  const normalized = normalizeWhitespace(text);
   const maxChunkTokens = options.maxChunkTokens ?? DEFAULT_MAX_CHUNK_TOKENS;
   const tokenToWordRatio = options.tokenToWordRatio ?? DEFAULT_TOKEN_TO_WORD_RATIO;
   const overlapTokens = options.overlapTokens ?? DEFAULT_OVERLAP_TOKENS;
@@ -170,4 +162,3 @@ export function recursiveDelimiterSplitter(
 }
 
 export default recursiveDelimiterSplitter;
-

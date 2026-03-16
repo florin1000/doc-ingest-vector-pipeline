@@ -1,4 +1,5 @@
 import { Chunk } from "../types/chunk";
+import { normalizeWhitespace } from "../utils/textNormalization";
 
 const DEFAULT_MAX_CHUNK_TOKENS = 512;
 const DEFAULT_TOKEN_TO_WORD_RATIO = 0.75;
@@ -8,15 +9,6 @@ interface FixedTokenWindowOptions {
   maxChunkTokens?: number;
   tokenToWordRatio?: number;
   overlapRatio?: number;
-}
-
-function normalizeText(text: string): string {
-  return text
-    .replaceAll("\r\n", "\n")
-    .replaceAll("\r", "\n")
-    .replaceAll(/[ \t]+/g, " ")
-    .replaceAll(/\n{3,}/g, "\n\n")
-    .trim();
 }
 
 export function fixedTokenWindowSplitter(
@@ -39,7 +31,7 @@ export function fixedTokenWindowSplitter(
     return [];
   }
 
-  const words = normalizeText(text).split(/\s+/);
+  const words = normalizeWhitespace(text).split(/\s+/);
   const chunks: Chunk[] = [];
 
   for (let start = 0, index = 0; start < words.length; start += step, index += 1) {
@@ -59,4 +51,3 @@ export function fixedTokenWindowSplitter(
 }
 
 export default fixedTokenWindowSplitter;
-

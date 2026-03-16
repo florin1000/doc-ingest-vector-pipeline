@@ -66,6 +66,16 @@ npx ts-node scripts/runIngestPdf.ts \
   --splitter fixed
 ```
 
+- OCR from pre-generated images:
+
+```bash
+npx ts-node scripts/runIngestPdf.ts \
+  --file ./original_docs/1706.03762v7.pdf \
+  --tenant tenant_A \
+  --splitter fixed \
+  --ocr-dir ./original_docs/1706_03762v7_images
+```
+
 ## Notes
 
 - Rerunning ingestion for the same `docId + tenantId` replaces previous chunks in both stores.

@@ -9,6 +9,7 @@ interface CliOptions {
   splitter: "fixed" | "recursive";
   skipEs: boolean;
   skipPg: boolean;
+  ocrImageDir?: string;
 }
 
 function parseCliOptions(argv: string[]): CliOptions {
@@ -18,6 +19,7 @@ function parseCliOptions(argv: string[]): CliOptions {
     splitter: "fixed",
     skipEs: false,
     skipPg: false,
+    ocrImageDir: undefined,
   };
 
   for (let i = 0; i < argv.length; i += 1) {
@@ -54,6 +56,12 @@ function parseCliOptions(argv: string[]): CliOptions {
 
     if (token === "--skip-pg") {
       options.skipPg = true;
+      continue;
+    }
+
+    if (token === "--ocr-dir" && argv[i + 1]) {
+      options.ocrImageDir = argv[i + 1] as string;
+      i += 1;
     }
   }
 
@@ -69,6 +77,7 @@ async function main(): Promise<void> {
     splitter: options.splitter,
     writeToElasticsearch: !options.skipEs,
     writeToPgvector: !options.skipPg,
+    ocrImageDir: options.ocrImageDir,
   });
 
   console.log("\nDone");
@@ -86,4 +95,3 @@ main()
     await closeElasticsearchClient();
     await closePgPool();
   });
-

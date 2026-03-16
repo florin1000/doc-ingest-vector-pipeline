@@ -98,6 +98,16 @@ npx ts-node scripts/runIngestPdf.ts \
   --splitter fixed
 ```
 
+- XLSX ingestion:
+
+```bash
+npx ts-node scripts/runIngestPdf.ts \
+  --source xlsx \
+  --file ./original_docs/demo.xlsx \
+  --tenant tenant_A \
+  --splitter fixed
+```
+
 ## Notes
 
 - Rerunning ingestion for the same `docId + tenantId` replaces previous chunks in both stores.

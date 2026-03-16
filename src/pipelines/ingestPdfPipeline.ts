@@ -3,6 +3,7 @@ import { parseDocxFile } from "../parsers/docxParser";
 import { parseHtmlUrl } from "../parsers/htmlParser";
 import { parseImageFolderWithOcr } from "../parsers/ocrImageParser";
 import { parsePdfFile } from "../parsers/pdfParser";
+import { parseXlsxFile } from "../parsers/xlsxParser";
 import { fixedTokenWindowSplitter } from "../splitters/fixedTokenWindow";
 import { recursiveDelimiterSplitter } from "../splitters/recursiveSplitter";
 import { upsertChunksToElasticsearch } from "../stores/elasticsearchStore";
@@ -10,7 +11,7 @@ import { upsertChunksToPgvector } from "../stores/pgvectorStore";
 import { ChunkDocument } from "../types/storage";
 
 type SplitterName = "fixed" | "recursive";
-export type IngestionSource = "pdf" | "ocr" | "html" | "docx";
+export type IngestionSource = "pdf" | "ocr" | "html" | "docx" | "xlsx";
 
 export interface IngestPdfOptions {
   tenantId: string;
@@ -51,7 +52,7 @@ export async function ingestPdfPipeline(
   let extractedText = "";
   let extractedPages = 0;
   let sourceRef = input;
-  let sourceType: "pdf" | "url" | "docx" = "pdf";
+  let sourceType: "pdf" | "url" | "docx" | "xlsx" = "pdf";
 
   if (source === "html") {
     console.log("Step 1: Parse HTML");
@@ -71,6 +72,16 @@ export async function ingestPdfPipeline(
     console.log(`Extracted text length: ${parsedDocx.text.length} chars`);
     console.log(`DOCX warnings: ${parsedDocx.warnings.length}`);
     console.log("Preview:", parsedDocx.text.slice(0, 500));
+  } else if (source === "xlsx") {
+    console.log("Step 1: Parse XLSX");
+    const parsedXlsx = await parseXlsxFile(input);
+    extractedText = parsedXlsx.text;
+    extractedPages = parsedXlsx.pages;
+    sourceType = "xlsx";
+    console.log(`Extracted text length: ${parsedXlsx.text.length} chars`);
+    console.log(`Sheets: ${parsedXlsx.sheetCount}, rows: ${parsedXlsx.rowCount}`);
+    console.log(`XLSX warnings: ${parsedXlsx.warnings.length}`);
+    console.log("Preview:", parsedXlsx.text.slice(0, 500));
   } else {
     console.log("Step 1-1: Parse PDF");
     const parsed = await parsePdfFile(input);
@@ -96,7 +107,8 @@ export async function ingestPdfPipeline(
     }
   }
 
-  if (extractedText.trim().length < 100) {
+  const minExtractedTextLength = source === "pdf" || source === "ocr" ? 100 : 20;
+  if (extractedText.trim().length < minExtractedTextLength) {
     throw new Error("Text extraction returned almost nothing.");
   }
 
